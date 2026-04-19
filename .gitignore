@@ -1,0 +1,46 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.hypothesis/
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+.coverage
+coverage.xml
+htmlcov/
+
+# --- Node / Vite (frontend) ---
+frontend/node_modules/
+frontend/dist/
+*.log
+npm-debug.log*
+
+# --- Секреты и локальные настройки ---
+.env
+.env.*.local
+
+# --- ОС и редакторы ---
+.DS_Store
+Thumbs.db
+*Zone.Identifier
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# --- Cursor / локальные артефакты ---
+.cursor/
