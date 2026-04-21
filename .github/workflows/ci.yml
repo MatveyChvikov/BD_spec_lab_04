@@ -594,6 +594,10 @@ jobs:
           - 5432:5432
     steps:
       - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -641,6 +645,11 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client
       
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -690,6 +699,11 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client
       
       - name: Setup database schema
         env:
