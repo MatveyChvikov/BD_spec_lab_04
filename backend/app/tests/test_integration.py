@@ -7,6 +7,8 @@ They require a running database.
 To run: pytest app/tests/test_integration.py -v
 """
 
+import uuid
+
 import pytest
 from httpx import AsyncClient, ASGITransport
 
@@ -42,7 +44,10 @@ class TestAPIEndpointsExist:
         ) as client:
             response = await client.post(
                 "/api/users",
-                json={"email": "test@example.com", "name": "Test"}
+                json={
+                    "email": f"test-{uuid.uuid4().hex}@example.com",
+                    "name": "Test",
+                },
             )
             # Should not be 404 (endpoint exists)
             # Will be 500 if not implemented, 201 if working
@@ -58,8 +63,12 @@ class TestAPIEndpointsExist:
             # Create a user first
             user_response = await client.post(
                 "/api/users",
-                json={"email": "ordertest@example.com", "name": "Order Test"}
+                json={
+                    "email": f"ordertest-{uuid.uuid4().hex}@example.com",
+                    "name": "Order Test",
+                },
             )
+            assert user_response.status_code == 201, user_response.text
             user_id = user_response.json()["id"]
             
             # Now create an order
@@ -79,8 +88,12 @@ class TestAPIEndpointsExist:
             # Create user and order first
             user_response = await client.post(
                 "/api/users",
-                json={"email": "paytest@example.com", "name": "Pay Test"}
+                json={
+                    "email": f"paytest-{uuid.uuid4().hex}@example.com",
+                    "name": "Pay Test",
+                },
             )
+            assert user_response.status_code == 201, user_response.text
             user_id = user_response.json()["id"]
             
             order_response = await client.post(
@@ -104,8 +117,12 @@ class TestAPIEndpointsExist:
             # Create user and order first
             user_response = await client.post(
                 "/api/users",
-                json={"email": "canceltest@example.com", "name": "Cancel Test"}
+                json={
+                    "email": f"canceltest-{uuid.uuid4().hex}@example.com",
+                    "name": "Cancel Test",
+                },
             )
+            assert user_response.status_code == 201, user_response.text
             user_id = user_response.json()["id"]
             
             order_response = await client.post(
