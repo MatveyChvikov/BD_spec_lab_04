@@ -18,6 +18,8 @@ from app.main import app
 from app.middleware.idempotency_middleware import REPLAY_HEADER
 from app.tests.db_seed import seed_order_in_created_status
 
+pytestmark = pytest.mark.usefixtures("_ensure_schema")
+
 
 def _print_comparison_table() -> None:
     """Наглядное сравнение для консоли (-s) и для отчёта ЛР4 / п.5 README."""

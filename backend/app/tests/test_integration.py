@@ -12,6 +12,8 @@ from httpx import AsyncClient, ASGITransport
 
 from app.main import app
 
+pytestmark = pytest.mark.usefixtures("_ensure_schema")
+
 
 class TestHealthEndpoint:
     """Test that the app starts correctly."""

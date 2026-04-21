@@ -5,6 +5,8 @@ import os
 
 import pytest
 
+pytestmark = pytest.mark.usefixtures("_ensure_schema")
+
 from app.application.payment_service import PaymentService
 from app.infrastructure.db import SessionLocal
 from app.tests.db_seed import seed_order_in_created_status

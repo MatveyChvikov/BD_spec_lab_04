@@ -12,6 +12,8 @@ from httpx import ASGITransport, AsyncClient
 from app.main import app
 from app.tests.db_seed import seed_order_in_created_status
 
+pytestmark = pytest.mark.usefixtures("_ensure_schema")
+
 
 @pytest.mark.asyncio
 async def test_retry_without_idempotency_can_double_pay():

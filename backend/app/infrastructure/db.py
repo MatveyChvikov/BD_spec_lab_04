@@ -59,6 +59,22 @@ engine = _EngineProxy()
 SessionLocal = _SessionLocalProxy()
 
 
+def dispose_all_loop_engines_sync() -> None:
+    """
+    Закрывает все AsyncEngine, созданные на разных event loop (pytest-asyncio).
+    sync_engine.dispose() не требует «родного» цикла и нужен, чтобы процесс
+    pytest/контейнер не зависал после выхода из тестов.
+    """
+    engines = list(_loop_engines.values())
+    _loop_engines.clear()
+    _loop_sessionmakers.clear()
+    for eng in engines:
+        try:
+            eng.sync_engine.dispose()
+        except Exception:
+            pass
+
+
 async def get_db() -> AsyncSession:
     session_factory = get_sessionmaker()
     async with session_factory() as session:

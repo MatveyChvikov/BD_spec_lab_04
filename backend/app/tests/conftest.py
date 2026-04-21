@@ -52,6 +52,12 @@ def _split_postgres_statements(script: str) -> list[str]:
     return parts
 
 
+def pytest_sessionfinish(session, exitstatus):
+    from app.infrastructure import db
+
+    db.dispose_all_loop_engines_sync()
+
+
 _SQLITE_DDL = [
     "PRAGMA foreign_keys=ON",
     """
@@ -126,7 +132,7 @@ _SQLITE_DDL = [
 ]
 
 
-@pytest_asyncio.fixture(scope="session", autouse=True)
+@pytest_asyncio.fixture(scope="session")
 async def _ensure_schema():
     """
     Схема для SQLite и догон миграции idempotency_keys для PostgreSQL.
@@ -166,6 +172,6 @@ from app.tests.db_seed import seed_order_in_created_status
 
 
 @pytest_asyncio.fixture
-async def created_order_id():
+async def created_order_id(_ensure_schema):
     """Заказ в статусе created для платёжных сценариев."""
     return await seed_order_in_created_status()

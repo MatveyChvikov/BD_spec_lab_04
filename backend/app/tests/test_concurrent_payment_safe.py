@@ -5,6 +5,8 @@ import os
 
 import pytest
 
+pytestmark = pytest.mark.usefixtures("_ensure_schema")
+
 from app.application.payment_service import PaymentService
 from app.domain.exceptions import OrderAlreadyPaidError
 from app.infrastructure.db import SessionLocal
