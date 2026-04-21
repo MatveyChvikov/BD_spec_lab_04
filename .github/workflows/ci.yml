@@ -1,4 +1,4 @@
-name: Lab 1 - Marketplace Database CI
+name: Lab 4 - Marketplace / Idempotency CI
 
 on:
   push:
@@ -6,10 +6,16 @@ on:
   pull_request:
     branches: [ main, master ]
 
+# Не держим runner часами при сбое сети/зависании.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   lint:
     name: Lint Code
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v3
       
@@ -32,6 +38,7 @@ jobs:
   check-ddd-architecture:
     name: Check DDD Architecture
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v3
       
@@ -133,6 +140,7 @@ jobs:
   check-domain-implementation:
     name: Check Domain Implementation
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v3
       
@@ -292,6 +300,7 @@ jobs:
   check-sql-schema:
     name: Check SQL Schema Requirements
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v3
       
@@ -429,6 +438,7 @@ jobs:
   check-implementation-complete:
     name: Check Implementation Not Empty
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v3
       
@@ -512,12 +522,16 @@ jobs:
   test-domain:
     name: Test Domain Invariants
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [check-domain-implementation]
+    env:
+      # Явно SQLite: без БД-сервиса не тянуть asyncpg к несуществующему Postgres.
+      DATABASE_URL: sqlite+aiosqlite:///:memory:
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       
@@ -535,12 +549,15 @@ jobs:
   test-payment-invariant:
     name: Test CRITICAL Invariant (Cannot Pay Twice)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [check-domain-implementation]
+    env:
+      DATABASE_URL: sqlite+aiosqlite:///:memory:
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       
@@ -556,9 +573,55 @@ jobs:
           echo "Testing CRITICAL invariant - order cannot be paid twice"
           pytest app/tests/test_domain.py::TestCriticalPaymentInvariant -v
 
+  test-lab04-idempotency:
+    name: Lab 04 — Idempotency & retry-demo (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [check-sql-schema, check-implementation-complete]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: marketplace_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+      - name: Apply migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d marketplace_test -f backend/migrations/001_init.sql
+          psql -h localhost -U postgres -d marketplace_test -f backend/migrations/002_idempotency_keys.sql
+      - name: Pytest Lab 04
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/marketplace_test
+        run: |
+          cd backend
+          export PYTHONPATH=$(pwd)
+          pytest app/tests/test_retry_without_idempotency.py \
+            app/tests/test_retry_with_idempotency_key.py \
+            app/tests/test_compare_idempotency_vs_for_update.py -v --tb=short
+
   test-integration:
     name: Integration Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [check-sql-schema, check-implementation-complete]
     
     services:
@@ -577,10 +640,10 @@ jobs:
           - 5432:5432
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       
@@ -607,6 +670,7 @@ jobs:
   test-db-trigger:
     name: Test DB Trigger (Double Payment Prevention)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [check-sql-schema]
     
     services:
@@ -625,7 +689,7 @@ jobs:
           - 5432:5432
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup database schema
         env:
@@ -684,13 +748,14 @@ jobs:
   summary:
     name: Summary
     runs-on: ubuntu-latest
-    needs: [lint, check-ddd-architecture, check-domain-implementation, check-sql-schema, check-implementation-complete, test-domain, test-payment-invariant, test-integration, test-db-trigger]
+    timeout-minutes: 5
+    needs: [lint, check-ddd-architecture, check-domain-implementation, check-sql-schema, check-implementation-complete, test-domain, test-payment-invariant, test-lab04-idempotency, test-integration, test-db-trigger]
     if: always()
     steps:
       - name: Print summary
         run: |
           echo "======================================"
-          echo "Lab 1 - Marketplace Database"
+          echo "Lab 4 - Marketplace / Idempotency"
           echo "======================================"
           echo ""
           echo "Checks performed:"
@@ -701,11 +766,12 @@ jobs:
           echo "5. ✓ Implementation Complete (no NotImplementedError)"
           echo "6. ✓ Domain Tests (invariants)"
           echo "7. ✓ CRITICAL: Payment Invariant Test"
-          echo "8. ✓ Integration Tests"
-          echo "9. ✓ DB Trigger Test (double payment prevention)"
+          echo "8. ✓ Lab 04: idempotency / retry-demo (PostgreSQL)"
+          echo "9. ✓ Integration Tests"
+          echo "10. ✓ DB Trigger Test (schema sanity)"
           echo ""
           echo "CRITICAL REQUIREMENT:"
           echo "Order cannot be paid twice - enforced at:"
           echo "  - Domain layer (Python)"
-          echo "  - Database layer (PostgreSQL trigger)"
+          echo "  - Application/DB patterns per lab (race + idempotency)"
           echo "======================================"
