@@ -536,7 +536,7 @@ jobs:
     needs: [check-domain-implementation]
     env:
       # Явно SQLite: без БД-сервиса не тянуть asyncpg к несуществующему Postgres.
-      DATABASE_URL: sqlite+aiosqlite:///:memory:
+      DATABASE_URL: "sqlite+aiosqlite:///:memory:"
     steps:
       - uses: actions/checkout@v4
       
@@ -562,7 +562,7 @@ jobs:
     timeout-minutes: 15
     needs: [check-domain-implementation]
     env:
-      DATABASE_URL: sqlite+aiosqlite:///:memory:
+      DATABASE_URL: "sqlite+aiosqlite:///:memory:"
     steps:
       - uses: actions/checkout@v4
       
@@ -631,7 +631,7 @@ jobs:
           psql -h 127.0.0.1 -U postgres -d marketplace_test -f backend/migrations/002_idempotency_keys.sql
       - name: Pytest Lab 04
         env:
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/marketplace_test
+          DATABASE_URL: "postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/marketplace_test"
         run: |
           cd backend
           export PYTHONPATH=$(pwd)
@@ -694,7 +694,7 @@ jobs:
       
       - name: Run integration tests
         env:
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/marketplace_test
+          DATABASE_URL: "postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/marketplace_test"
         run: |
           cd backend
           export PYTHONPATH=$(pwd)
